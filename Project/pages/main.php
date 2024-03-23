@@ -46,102 +46,60 @@
   <div class="tables container-fluid tbl-container d-flex flex-column justify-content-center align-content-center">
     <div class="row tbl-fixed">
       <table class="table-striped table-condensed" style="width:1920px !important;" id="myTable">
-        <thead>
-          <tr>
+          <thead>
+        <tr>
             <?php
             include '../connection/connect.php';
-
-            $sql = "SELECT tblproduct_transaction.*, tblproduct_sales_months.*
-                    FROM tblproduct_transaction
-                    INNER JOIN tblproduct_sales_months
-                    ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk;";
-
-            $result = $conn->query($sql); // Execute the query
+            
+            $sql = "SELECT * FROM tblproduct_transaction INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
+            $result = $conn->query($sql);
 
             if ($result && $result->num_rows > 0) {
-              // Output column names from the database
-              echo "<tr>"; // Start table row
-              $transactionColumnCount = $result->field_count - 1; // Exclude product_fk
-              $extraColumnAdded = false;
-              while ($row = $result->fetch_assoc()) {
-                foreach ($row as $column_name => $value) {
-                  if ($column_name == 'product_status') {
-                    // Skip rendering product_status
-                    continue;
-                  }
-                  if ($column_name == 'product_fk') {
-                    // Adding extra column before product_fk
-                    if (!$extraColumnAdded) {
-                      echo "<th class='text-center'>" . "Current Stock" . "<br><span id='current_stock'></span></th>";
-                      echo "<th class='text-center'>" . "Total" . "<br><span id='total'></span></th>";
-                      $extraColumnAdded = true;
+                while ($row = $result->fetch_assoc()) {
+                    foreach ($row as $column_name => $value) {
+                        if ($column_name == 'product_status' || $column_name == 'product_fk') {
+                            // Skip rendering product_status and product_fk
+                            continue;
+                        }
+                        if ($column_name == 'January') {
+                            echo "<th id='current_stock' class='text-center'>Current Stock <br><span id='" . $column_name . "' class='text-danger'>()</span></th>";
+                            echo "<th id='total' class='text-center'>Total <br><span id='" . $column_name . "' class='text-danger'>()</span></th>";
+                        }
+                        
+                        echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'>(<span id='" . $column_name . "_sum'></span>)</span></th>";
                     }
-                    continue;
-                  }
-                  echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'></span></th>";
+                    break;
                 }
-                break; // Break after outputting column names of the first row
-              }
-              echo "</tr>"; // End table row
-            } else {
-              echo "<th>No results found</th>"; // Output if no results found
             }
             ?>
-          </tr>
-        </thead>
-        <tbody>
-          <?php
-          include '../connection/connect.php'; // Include your database connection file
+        </tr>
+      </thead>
+          <tbody>
+            <?php
+            include '../connection/connect.php';
+            
+            $sql = "SELECT * FROM tblproduct_transaction INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
+            $result = $conn->query($sql);
 
-          // Query to fetch product transactions and sales data
-          $sql = "SELECT * FROM tblproduct_transaction INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
-          $result = $conn->query($sql);
-
-          if ($result) {
-            if ($result->num_rows > 0) {
-              // Fetch column names dynamically
-              $columns = array();
-              $row = $result->fetch_assoc();
-              foreach ($row as $key => $value) {
-                if ($key != 'product_fk') {
-                  $columns[] = $key;
+            if ($result && $result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    echo "<tr id='" . $row['product_pk'] . "'>"; // Add unique ID for each row
+                    foreach ($row as $column_name => $value) {
+                        if ($column_name == 'product_status' || $column_name == 'product_fk') {
+                            // Skip rendering product_status and product_fk
+                            continue;
+                        }
+                        if ($column_name == 'January') {
+                            echo "<td name='current_stock' class='text-center amount' data-column='current_stock'></td>"; // Corrected closing tag
+                            echo "<td name='total' class='text-center amount' data-column='total'></td>";
+                        }
+                        echo "<td class='editable' data-column='" . $column_name . "'>" . $value . "</td>";
+                    }
+                    echo "</tr>";
                 }
-              }
-              // Reset the result pointer back to the beginning
-              $result->data_seek(0);
-              // Output data row by row
-              while ($row = $result->fetch_assoc()) {
-                echo "<tr id=\"" . $row['product_pk'] . "\">";
-                foreach ($columns as $column) {
-                  if ($column == 'product_status') {
-                    // Skip rendering product_status and product_pk
-                    continue;
-                  }
-
-                  // Calculate total for January column
-                  if ($column == 'January') {
-                    echo "<td id='current_stock' data-column='" . $column . "' name='current_stock' class='text-center'></td>"; // Placeholder for current stock with initial value 0
-                    echo "<td id='total' data-column='" . $column . "' name='total' class='text-center'></td>"; // Display total if it's not 0
-                  }
-                  echo "<td id='" . $column . "' class='editable' data-column='" . $column . "'>" . htmlspecialchars($row[$column]) . "</td>"; // Sanitize output
-                }
-                echo "</tr>";
-              }
-            } else {
-              echo "<tr><td colspan='" . (count($columns) + 1) . "'>0 results</td></tr>"; // Output if no results found
             }
-            // Free result set
-            $result->free();
-          } else {
-            // Handle query error
-            echo "Error: " . $conn->error;
-          }
-
-          // Close the database connection
-          $conn->close();
-          ?>
-
-        </tbody>
+            ?>
+          </tbody>
       </table>
     </div>
   </div>
@@ -151,7 +109,7 @@
     <div class="buttons d-flex align-content-end justify-content-end mt-3 px-2">
       <div class="page-of">Page <span id="current-page">1</span> of <span id="total-pages">1</span></div>
       <button id="prev-btn">Prev</button>
-      <input type="number" placeholder="1" id="page-number" min="1" max="1">
+      <input type="number" placeholder="1" id="page-number" disabled>
       <button id="next-btn">Next</button>
     </div>
 </div>
@@ -227,129 +185,61 @@
         </div>
     </div>
 </div>
-
-
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="../js/jquery.tabledit.js"></script>
-<script src="../js/bootstrap.min.js"></script>
-<script src="../js/main.js"></script>
+<!-- Make tbody editable -->
 <script>
-$(document).ready(function() {
-    // Iterate over each dynamic column starting from the third column
-    $('table').find('td.editable').slice(2).each(function() {
-        var columnIndex = $(this).index(); // Get the index of the column
-        var total = 0;
+    $(document).ready(function() {
+        $("td.editable").on("click", function() {
+            // Check if the cell is not in the first column (assuming ID column is the first column)
+            if (!$(this).prev().length) {
+                return; // Exit the function if the cell is in the first column
+            }
 
-        // Exclude product_fk and product name columns from sum calculation
-        if (columnIndex > 1) {
-            // Iterate over each row in the column
-            $('table').find('tbody tr').each(function() {
-                var cellValue = parseInt($(this).find('td').eq(columnIndex).text()) || 0; // Get the value of the cell (convert to integer or default to 0 if not a number)
-                total += cellValue; // Add the value to the total
+            var oldValue = $(this).text().trim();
+
+            // Set the contenteditable attribute to true to make the cell editable
+            $(this).attr("contenteditable", "true").focus();
+
+            // On blur event, send AJAX request to update the value
+            $(this).on("blur", function() {
+                var newValue = $(this).text().trim();
+                if (newValue !== oldValue) {
+                    var productId = $(this).closest("tr").attr("id");
+                    var column = $(this).attr("data-column");
+
+                    // Send AJAX request to update the value
+                    $.ajax({
+                        url: "update.php",
+                        type: "POST",
+                        data: { id: productId, column: column, newValue: newValue },
+                        dataType: "json",
+                        success: function(response) {
+                            console.log("AJAX Success:", response);
+                            if (response.success) {
+                                $(this).text(newValue); // Update the cell text with the new value
+                            } else {
+                                console.error("Update failed:", response.message);
+                                $(this).text(oldValue); // Revert the cell text to the original value
+                            }
+                        }.bind(this), // Ensure correct context inside the success callback
+                        error: function(xhr, status, error) {
+                            console.error("AJAX Error:", error);
+                            $(this).text(oldValue); // Revert the cell text to the original value
+                        }.bind(this) // Ensure correct context inside the error callback
+                    });
+                } else {
+                    // If the value hasn't changed, simply display the text
+                    $(this).text(oldValue);
+                }
+
+                // Remove the blur event handler after editing
+                $(this).removeAttr("contenteditable").off("blur");
             });
-
-            // Display the sum in the corresponding <span> element
-            var columnName = $(this).attr('data-column'); // Get the column name
-            $('span#' + columnName).text(total); // Set the sum in the corresponding <span> element
-
-            // Also display the sum in the table header for "Current Stock" and "Total"
-            $('th#' + columnName).find('span').text(total); // Set the sum in the corresponding <span> element within the table header
-        }
+        });
     });
-});
 </script>
-
-<script>
-$(function() {
-  // Add event listener to the button
-  $('#sum-row').click(function() {
-    var row = $(this).closest('tr'); // Get the current row
-    var sum = 0;
-
-    // Loop through each td element in the row
-    row.find('td:not(:first)').each(function() {
-      var val = parseInt($(this).text(), 10) || 0; // Get the value, convert to integer and default to 0 if it's not a number
-      sum += val;
-    });
-
-    // Add the sum to the total cell
-    row.find('td:last').text(sum);
-  });
-});
-
-
-// Function to calculate and update the current stock
-function updatecurrent_stock() {
-  $('#myTable tbody tr').each(function() {
-    var current_stock = 0;
-    var currentIndex = $(this).find('td.editable').index($(this).find('td.editable:focus')); // Get the index of the currently focused editable cell
-    var threshold = $(this).find('td.editable').length; // Get the number of editable cells in the row
-    
-    // Determine the number of columns before the "current_stock" column dynamically
-    var columnCount = $(this).find('td[name="current_stock"]').index();
-    
-    // Loop through each editable cell before the current one
-    $(this).find('td.editable').each(function(index) {
-      if (index !== 0 && index !== 1 && index < columnCount) { // Skip product_fk (index 0) and only consider columns before the "current_stock" column
-        var value = parseInt($(this).text()) || 0;
-        current_stock += value;
-      }
-    });
-    // Update the corresponding "current_stock" cell in the row
-    $(this).find('td[name="current_stock"]').text(current_stock);
-  });
-}
-
-// Event listener for input changes in the editable cells
-$('#myTable tbody td.editable').on('input', function() {
-  updatecurrent_stock(); // Recalculate the current stock when a value changes
-});
-
-// Call updatecurrent_stock() on document ready to ensure it runs when the page loads
-$(document).ready(function() {
-  updatecurrent_stock();
-});
-
-
-  // Function to calculate and update the total
-  function updateTotal() {
-    var totalColumnIndex = $('th:contains("Total")').index() + 1; // Get the index of the "Total" column
-    $('#myTable tbody tr').each(function() {
-      var total = 0;
-      $(this).find('td.editable').each(function(index) {
-        // Skip the first two non-editable columns (current_stock and total)
-        if (index > 1) {
-          var value = parseInt($(this).text()) || 0; // Get the cell value, default to 0 if not a number
-          total += value;
-        }
-      });
-      $(this).find('td[name="total"]').text(total); // Update the total cell with the calculated total
-    });
-  }
-
-
-
-// Function to handle subtraction or addition
-function handleOperation(cell) {
-  var value = parseInt(cell.text()) || 0; // Get the entered value
-  var totalCell = cell.closest('tr').find('td[name="total"]');
-  var total = parseInt(totalCell.text()) || 0; // Get the current total
-  var newValue = value * -1; // Multiply the entered value by -1
-  totalCell.text(total + newValue); // Add the new value to the total
-}
-// Event listener for input changes in the editable cells
-$('#myTable tbody td.editable').on('input', function() {
-  updateTotal(); // Recalculate the total when a value changes
-});
-
-  // Initial calculation of the total
-  $(document).ready(function() {
-    updateTotal();
-  });
-
-</script>
+<!-- Filter Parts -->
 <script>
   $(document).ready(function() {
 // Define the filtering logic
@@ -456,62 +346,114 @@ const filterTable = (tableId, rowLimit) => {
             $('#table-body').html(noResultsMessage);
         }
         
-        // Reload the page when search input is cleared
-        if (searchText === '') {
-            location.reload();
-        }
     }
 
     // Bind the keyup event of the search input
     $('#searchInput').keyup(handleSearch);
+  });
+</script>
+<!-- Calculation Parts -->
+<script>
+  $(document).ready(function () {
+    // Function to calculate and update the current stock
+function updatecurrent_stock() {
+  $('#myTable tbody tr').each(function() {
+    var current_stock = 0;
+    var currentIndex = $(this).find('td.editable').index($(this).find('td.editable:focus')); // Get the index of the currently focused editable cell
+    var threshold = $(this).find('td.editable').length; // Get the number of editable cells in the row
+    
+    // Determine the number of columns before the "current_stock" column dynamically
+    var columnCount = $(this).find('td[name="current_stock"]').index();
+    
+    // Loop through each editable cell before the current one
+    $(this).find('td.editable').each(function(index) {
+      if (index !== 0 && index !== 1 && index < columnCount) { // Skip product_fk (index 0) and only consider columns before the "current_stock" column
+        var value = parseInt($(this).text()) || 0;
+        current_stock += value;
+      }
+    });
+    // Update the corresponding "current_stock" cell in the row
+    $(this).find('td[name="current_stock"]').text(current_stock);
+  });
+}
 
-    $("td.editable").on("click", function() {
-        // Check if the cell is not in the first column (assuming ID column is the first column)
-        if (!$(this).prev().length) {
-            return; // Exit the function if the cell is in the first column
+// Event listener for input changes in the editable cells
+$('#myTable tbody td.editable').on('input', function() {
+  updatecurrent_stock(); // Recalculate the current stock when a value changes
+});
+
+// Call updatecurrent_stock() on document ready to ensure it runs when the page loads
+$(document).ready(function() {
+  updatecurrent_stock();
+});
+
+
+  // Function to calculate and update the total
+  function updateTotal() {
+    var totalColumnIndex = $('th:contains("Total")').index() + 1; // Get the index of the "Total" column
+    $('#myTable tbody tr').each(function() {
+      var total = 0;
+      $(this).find('td.editable').each(function(index) {
+        // Skip the first two non-editable columns (current_stock and total)
+        if (index > 1) {
+          var value = parseInt($(this).text()) || 0; // Get the cell value, default to 0 if not a number
+          total += value;
         }
-    
-        var oldValue = $(this).text().trim();
-    
-        // Set the contenteditable attribute to true to make the cell editable
-        $(this).attr("contenteditable", "true").focus();
-    
-        // On blur event, send AJAX request to update the value
-        $(this).on("blur", function() {
-            var newValue = $(this).text().trim();
-            if (newValue !== oldValue) {
-                var productId = $(this).closest("tr").attr("id");
-                var column = $(this).attr("data-column");
-    
-                // Send AJAX request to update the value
-                $.ajax({
-                    url: "update.php",
-                    type: "POST",
-                    data: { id: productId, column: column, newValue: newValue },
-                    dataType: "json",
-                    success: function(response) {
-                        console.log("AJAX Success:", response);
-                        if (response.success) {
-                            $(this).text(newValue); // Update the cell text with the new value
-                        } else {
-                            console.error("Update failed:", response.message);
-                            $(this).text(oldValue); // Revert the cell text to the original value
-                        }
-                    }.bind(this), // Ensure correct context inside the success callback
-                    error: function(xhr, status, error) {
-                        console.error("AJAX Error:", error);
-                        $(this).text(oldValue); // Revert the cell text to the original value
-                    }.bind(this) // Ensure correct context inside the error callback
+      });
+      $(this).find('td[name="total"]').text(total); // Update the total cell with the calculated total
+    });
+  }
+
+// Event listener for input changes in the editable cells
+$('#myTable tbody td.editable').on('input', function() {
+    // Recalculate the total when a value changes
+    updateTotal();
+});
+
+// Function to handle subtraction or addition
+function handleOperation(cell) {
+  var value = parseInt(cell.text()) || 0; // Get the entered value
+  var totalCell = cell.closest('tr').find('td[name="total"]');
+  var total = parseInt(totalCell.text()) || 0; // Get the current total
+  var newValue = total; // Convert the absolute value to negative
+  totalCell.text(total - value); // Add the negative value to the total
+}
+
+  // Initial calculation of the total
+  $(document).ready(function() {
+    updateTotal();
+  });
+  })
+</script>
+<!-- Sum Column -->
+<script>
+$(document).ready(function() {
+    // Function to calculate and update sums
+    function updateSums() {
+        $('#myTable').find('td.editable').slice(2).each(function() { // Start from the third column
+            var columnIndex = $(this).index(); // Get the index of the column
+            var total = 0;
+
+            if (columnIndex > 1) { // Exclude the first two columns
+                $('#myTable').find('tbody tr').each(function() {
+                    var cellValue = parseInt($(this).find('td').eq(columnIndex).text()) || 0;
+                    total += cellValue;
                 });
-            } else {
-                // If the value hasn't changed, simply display the text
-                $(this).text(oldValue);
+
+                var columnName = $(this).attr('data-column');
+                $('span#' + columnName + '_sum').text(total); // Set the sum in the corresponding inner <span> element
             }
-    
-            // Remove the blur event handler after editing
-            $(this).removeAttr("contenteditable").off("blur");
         });
+    }
+
+    // Initial calculation on page load
+    updateSums();
+
+    // Listen for changes in the table and update sums accordingly
+    $('#myTable').on('input', 'td.editable', function() {
+        updateSums();
     });
 });
 </script>
+
 </html>
