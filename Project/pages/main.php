@@ -12,6 +12,7 @@
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
+
 <body>
 <div class="contain-fluid">
 <nav class="sticky-top top-0" style="background-color:white; z-index:999;">
@@ -48,10 +49,10 @@
       <table class="table-striped table-condensed" style="width:1920px !important;" id="myTable">
           <thead>
         <tr>
-            <?php
+        <?php
             include '../connection/connect.php';
-            
-            $sql = "SELECT * FROM tblproduct_transaction INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
+
+            $sql = "SELECT * FROM tblproduct_transaction  INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
             $result = $conn->query($sql);
 
             if ($result && $result->num_rows > 0) {
@@ -62,16 +63,22 @@
                             continue;
                         }
                         if ($column_name == 'January') {
-                            echo "<th id='current_stock' class='text-center'>Current Stock <br><span id='" . $column_name . "' class='text-danger'>()</span></th>";
-                            echo "<th id='total' class='text-center'>Total <br><span id='" . $column_name . "' class='text-danger'>()</span></th>";
+                            echo "<th class='text-center'>Current Stock <br><span id='current_stock_sum' class='text-danger'>()</span></th>";
+                            echo "<th class='text-center'>Total <br><span id='total_sum' class='text-danger'>()</span></th>";
                         }
-                        
-                        echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'>(<span id='" . $column_name . "_sum'></span>)</span></th>";
+                        // Check if the current column is product_pk or product_name
+                        if ($column_name == 'product_pk' || $column_name == 'product_name') {
+                            // Remove the parentheses from the span
+                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' style='color:#28ACE8;'>()</span></th>";
+                        } else {
+                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'>(<span id='" . $column_name . "_sum'></span>)</span></th>";
+                        }
                     }
                     break;
                 }
             }
-            ?>
+        ?>
+
         </tr>
       </thead>
           <tbody>
@@ -83,15 +90,15 @@
 
             if ($result && $result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    echo "<tr id='" . $row['product_pk'] . "'>"; // Add unique ID for each row
+                    echo "<tr id='row_" . $row['product_pk'] . "'>"; // Add unique ID for each row
                     foreach ($row as $column_name => $value) {
                         if ($column_name == 'product_status' || $column_name == 'product_fk') {
                             // Skip rendering product_status and product_fk
                             continue;
                         }
                         if ($column_name == 'January') {
-                            echo "<td name='current_stock' class='text-center amount' data-column='current_stock'></td>"; // Corrected closing tag
-                            echo "<td name='total' class='text-center amount' data-column='total'></td>";
+                            echo "<td name='current_stock' class='text-center'></td>"; // Corrected closing tag
+                            echo "<td name='total' class='text-center'></td>";
                         }
                         echo "<td class='editable' data-column='" . $column_name . "'>" . $value . "</td>";
                     }
@@ -187,6 +194,10 @@
 </div>
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="../js/jquery.tabledit.js"></script>
+<script src="../js/bootstrap.min.js"></script>
+<script src="../js/main.js"></script>
 <!-- Make tbody editable -->
 <script>
     $(document).ready(function() {
@@ -196,49 +207,73 @@
                 return; // Exit the function if the cell is in the first column
             }
 
-            var oldValue = $(this).text().trim();
+            var cell = $(this);
+            var oldValue = cell.text().trim();
 
             // Set the contenteditable attribute to true to make the cell editable
-            $(this).attr("contenteditable", "true").focus();
+            cell.attr("contenteditable", "true").focus();
 
             // On blur event, send AJAX request to update the value
-            $(this).on("blur", function() {
-                var newValue = $(this).text().trim();
-                if (newValue !== oldValue) {
-                    var productId = $(this).closest("tr").attr("id");
-                    var column = $(this).attr("data-column");
+            cell.on("blur", function() {
+                var newValue = cell.text().trim();
+                updateValue(cell, newValue, oldValue);
+            });
 
-                    // Send AJAX request to update the value
-                    $.ajax({
-                        url: "update.php",
-                        type: "POST",
-                        data: { id: productId, column: column, newValue: newValue },
-                        dataType: "json",
-                        success: function(response) {
-                            console.log("AJAX Success:", response);
-                            if (response.success) {
-                                $(this).text(newValue); // Update the cell text with the new value
-                            } else {
-                                console.error("Update failed:", response.message);
-                                $(this).text(oldValue); // Revert the cell text to the original value
-                            }
-                        }.bind(this), // Ensure correct context inside the success callback
-                        error: function(xhr, status, error) {
-                            console.error("AJAX Error:", error);
-                            $(this).text(oldValue); // Revert the cell text to the original value
-                        }.bind(this) // Ensure correct context inside the error callback
-                    });
-                } else {
-                    // If the value hasn't changed, simply display the text
-                    $(this).text(oldValue);
+            // On pressing Enter key, confirm the edited value
+            cell.on("keydown", function(event) {
+                if (event.keyCode === 13) { // 13 corresponds to the Enter key
+                    var newValue = cell.text().trim();
+                    updateValue(cell, newValue, oldValue);
                 }
-
-                // Remove the blur event handler after editing
-                $(this).removeAttr("contenteditable").off("blur");
             });
         });
+
+        function updateValue(cell, newValue, oldValue) {
+            var column = cell.attr("data-column");
+
+            // If column is not product_name, validate if newValue is numeric
+            if (column !== "product_name" && isNaN(newValue)) {
+                alert("Please enter a valid numeric value.");
+                cell.text(oldValue); // Revert the cell text to the original value
+                cell.removeAttr("contenteditable").off("blur keydown");
+                return;
+            }
+
+            if (newValue !== oldValue) {
+                var productId = cell.closest("tr").attr("id").split("_")[1]; // Extract product ID
+
+                // Send AJAX request to update the value
+                $.ajax({
+                    url: "update.php",
+                    type: "POST",
+                    data: { id: productId, column: column, newValue: newValue },
+                    dataType: "json",
+                    success: function(response) {
+                        console.log("AJAX Success:", response);
+                        if (response.success) {
+                            cell.text(newValue); // Update the cell text with the new value
+                        } else {
+                            console.error("Update failed:", response.message);
+                            cell.text(oldValue); // Revert the cell text to the original value
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX Error:", error);
+                        cell.text(oldValue); // Revert the cell text to the original value
+                    },
+                    complete: function() {
+                        cell.removeAttr("contenteditable").off("blur keydown");
+                    }
+                });
+            } else {
+                // If the value hasn't changed, simply display the text
+                cell.text(oldValue);
+                cell.removeAttr("contenteditable").off("blur keydown");
+            }
+        }
     });
 </script>
+
 <!-- Filter Parts -->
 <script>
   $(document).ready(function() {
@@ -454,6 +489,46 @@ $(document).ready(function() {
         updateSums();
     });
 });
+</script>
+<!-- Sum Column of Current_stock and Total-->
+<script>
+    function updateSums() {
+        var rows = document.querySelectorAll("tr[id^='row_']");
+        var currentStockSum = 0;
+        var totalSum = 0;
+
+        rows.forEach(function(row) {
+            var currentStockText = row.querySelector("td[name='current_stock']").innerText;
+            var totalText = row.querySelector("td[name='total']").innerText;
+            
+            // Extract numeric values using regular expressions
+            var numericRegex = /[-+]?[0-9]+/g; // Change regex to match integers
+            var currentStockMatches = currentStockText.match(numericRegex);
+            var totalMatches = totalText.match(numericRegex);
+
+            // Check if matches were found
+            if (currentStockMatches && totalMatches) {
+                // Use the first match as the numeric value
+                var currentStockValue = parseInt(currentStockMatches[0]);
+                var totalValue = parseInt(totalMatches[0]);
+
+                // Update the sums
+                currentStockSum += currentStockValue;
+                totalSum += totalValue;
+            }
+        });
+
+        // Update the sums in the respective span elements with parentheses
+        document.getElementById("current_stock_sum").innerText = "(" + currentStockSum + ")";
+        document.getElementById("total_sum").innerText = "(" + totalSum + ")";
+    }
+
+    window.onload = function() {
+        updateSums(); // Initial update
+        
+        // Polling to update sums periodically
+        setInterval(updateSums, 2000); // Update every 2 seconds (adjust as needed)
+    };
 </script>
 
 </html>
