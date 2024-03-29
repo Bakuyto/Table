@@ -7,7 +7,6 @@
   <title>Main Page</title>
   <link rel="stylesheet" href="../css/bootstrap.min.css">
   <link rel="stylesheet" href="../css/main.css">
-  <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -30,21 +29,21 @@
     </nav>
       <div class="main-header px-3 sticky-top bg-light" style='top:60px;'>
         <form class="d-flex" id="searchForm">
-          <input class="form-control me-1 w-100" type="search" id="searchInput" placeholder="Search by Name" aria-label="Search">
+          <input class="form-control me-1" type="search"  id="searchInput" placeholder="Search by Name" aria-label="Search" style="width:260px">
         </form>
         
         
 
         <div class="form-inline d-flex flex-row gap-1">
           <button type="button" class="btn btn-primary" onclick="$('#addModal').modal('show')">Create</button>
-          <input type="number" id="row" style="width:60px; height: 40px;" class="form-control"/>
+          <input type="number" id="row" style="width:80px; height: 40px;" class="form-control"/>
           <button type="button" class="btn btn-success" id="filter">Filter</button>
         </div>
         
       </div>
       
       <section>
-  <div class="tables container-fluid tbl-container d-flex flex-column justify-content-center align-content-center">
+  <div class="tables container-fluid tbl-container d-flex flex-column justify-content-center align-content-center" style="height:75 vh;">
     <div class="row tbl-fixed">
       <table class="table-striped table-condensed" style="width:1920px !important;" id="myTable">
           <thead>
@@ -52,26 +51,22 @@
         <?php
             include '../connection/connect.php';
 
-            $sql = "SELECT * FROM tblproduct_transaction  INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
+            $sql = "CALL update_table_column()";
             $result = $conn->query($sql);
 
             if ($result && $result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
                     foreach ($row as $column_name => $value) {
-                        if ($column_name == 'product_status' || $column_name == 'product_fk') {
+                        if ( $column_name == 'product_status' || $column_name == 'product_fk') {
                             // Skip rendering product_status and product_fk
                             continue;
-                        }
-                        if ($column_name == 'January') {
-                            echo "<th class='text-center'>Current Stock <br><span id='current_stock_sum' class='text-danger'>()</span></th>";
-                            echo "<th class='text-center'>Total <br><span id='total_sum' class='text-danger'>()</span></th>";
                         }
                         // Check if the current column is product_pk or product_name
                         if ($column_name == 'product_pk' || $column_name == 'product_name') {
                             // Remove the parentheses from the span
                             echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' style='color:#28ACE8;'>()</span></th>";
                         } else {
-                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'>(<span id='" . $column_name . "_sum'></span>)</span></th>";
+                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'><span id='" . $column_name . "_sum'></span></span></th>";
                         }
                     }
                     break;
@@ -81,31 +76,30 @@
 
         </tr>
       </thead>
-          <tbody>
-            <?php
-            include '../connection/connect.php';
-            
-            $sql = "SELECT * FROM tblproduct_transaction INNER JOIN tblproduct_sales_months ON tblproduct_transaction.product_pk = tblproduct_sales_months.product_fk";
-            $result = $conn->query($sql);
+      <tbody>
+          <?php
+include '../connection/connect.php';
 
-            if ($result && $result->num_rows > 0) {
-                while ($row = $result->fetch_assoc()) {
-                    echo "<tr id='row_" . $row['product_pk'] . "'>"; // Add unique ID for each row
-                    foreach ($row as $column_name => $value) {
-                        if ($column_name == 'product_status' || $column_name == 'product_fk') {
-                            // Skip rendering product_status and product_fk
-                            continue;
-                        }
-                        if ($column_name == 'January') {
-                            echo "<td name='current_stock' class='text-center'></td>"; // Corrected closing tag
-                            echo "<td name='total' class='text-center'></td>";
-                        }
-                        echo "<td class='editable' data-column='" . $column_name . "'>" . $value . "</td>";
-                    }
-                    echo "</tr>";
-                }
+$sql = "CALL update_table_column()";
+$result = $conn->query($sql);
+
+if ($result && $result->num_rows > 0) {
+    $counter = 1; // Initialize a counter for generating new IDs
+    while ($row = $result->fetch_assoc()) {
+        echo "<tr id='row_" . $counter . "'>"; // Generate new ID starting from 1
+        echo "<td>" . $counter . "</td>"; // Use the counter to generate each
+        foreach ($row as $column_name => $value) {
+            if ($column_name == 'product_pk' || $column_name == 'product_status' || $column_name == 'product_fk') {
+                continue;
             }
-            ?>
+            echo "<td id='".$column_name."' class='editable' data-column='" . $column_name . "' contenteditable='true' type='number'>" . $value . "</td>";
+        }
+        echo "</tr>";
+        $counter++; // Increment the counter for the next row
+    }
+}   
+?>
+
           </tbody>
       </table>
     </div>
@@ -123,75 +117,53 @@
 
 <!-- Modal -->
 <div class="modal fade" style="--bs-modal-width: 1000px !important;" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header px-5">
+            <div class="modal-header bg-primary text-white">
                 <h2 class="modal-title" id="addModalLabel">Create</h2>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form method="POST" action="process_form.php"> <!-- Specify the PHP script to handle form submission -->
-                    <div class="tables container-fluid tbl-container d-flex flex-column justify-content-center align-content-center">
-                        <div class="row tbl-fixed">
-                            <table class="table-striped table-condensed" id="myTable">
-                                <thead>
-                                    <tr>
-                                    <?php
-                                      include '../connection/connect.php';
+                <form method="POST" action="process_form.php">
+                    <div class="row g-3" style="display: flex; flex-wrap: nowrap; overflow-x: auto;">
+                        <?php
+                            include '../connection/connect.php';
 
-                                      $sql = "SELECT
-                                      COLUMN_NAME AS department_name
-                                      FROM INFORMATION_SCHEMA.COLUMNS
-                                       WHERE TABLE_NAME = 'tblproduct_transaction'
-                                       AND ORDINAL_POSITION >= 2;";
-                                      $result = $conn->query($sql); // Execute the query
+                            $sql = "SELECT
+                            COLUMN_NAME AS department_name
+                            FROM INFORMATION_SCHEMA.COLUMNS
+                            WHERE TABLE_NAME = 'tblproduct_transaction'
+                            AND ORDINAL_POSITION >= 2;";
+                            $result = $conn->query($sql); // Execute the query
 
-                                      if ($result && $result->num_rows > 0) {
-                                          // Fetch column names from the database
-                                          $columns = array();
-                                          while ($row = $result->fetch_assoc()) {
-                                              $columns[] = $row["department_name"];
-                                              echo "<th class='text-center'>" . $row["department_name"] . "</th>";
-                                          }
-                                      } else {
-                                          echo "<th>No results found</th>"; // Output if no results found
-                                      }
+                            if ($result && $result->num_rows > 0) {
+                                // Fetch column names from the database
+                                $first = true; // Flag to track the first column
+                                while ($row = $result->fetch_assoc()) {
+                                    $department_name = $row["department_name"];
                                     ?>
-                                   </tr>
-                                </thead>
-                                <?php
-                                  // Output empty input fields in the tbody
-                                  echo "<tbody><tr>";
-                                  if ($result && $result->num_rows > 0) {
-                                      foreach ($columns as $index => $column) {
-                                          // Check if it's the first column
-                                          if ($index === 0) {
-                                              echo "<td><input type='text' name='" . $column . "' required></td>";
-                                          } else {
-                                              echo "<td><input type='text' name='" . $column . "'></td>";
-                                          }
-                                      }
-
-                                      
-                                  } else {
-                                      // Output a single cell spanning all columns if no results found
-                                      echo "<td colspan='" . count($columns) . "'>No data available</td>";
-                                  }
-                                  echo "</tr></tbody>";
-                                ?> 
-
-                            </table>
-                        </div>
+                                    <div class="col-12 mb-3" style="flex: 0 0 auto; width: 200px;">
+                                        <label for="<?= $department_name ?>" class="form-label text-center fw-bolder w-100"><?= $department_name ?></label>
+                                        <input type="text" class="form-control<?= $first ? ' required' : '' ?>" id="<?= $department_name ?>" name="<?= $department_name ?>"<?= $first ? ' required' : '' ?>>
+                                    </div>
+                                    <?php
+                                    $first = false; // Unset flag after the first iteration
+                                }
+                            } else {
+                                echo "<p>No results found</p>"; // Output if no results found
+                            }
+                        ?>
                     </div>
-                    <div class='form-group mb-3 mt-3 d-flex justify-content-end'>
-                        <button type='button' class='btn btn-secondary mx-2' data-bs-dismiss='modal'>Close</button>
-                        <button type='submit' name='submit_input' class='btn btn-primary'>Submit</button>
+                    <div class="d-flex justify-content-end mt-3">
+                        <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" name="submit_input" class="btn btn-primary">Submit</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
 </body>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -200,311 +172,300 @@
 <script src="../js/main.js"></script>
 <!-- Make tbody editable -->
 <script>
-    $(document).ready(function() {
-        $("td.editable").on("click", function() {
-            // Check if the cell is not in the first column (assuming ID column is the first column)
-            if (!$(this).prev().length) {
-                return; // Exit the function if the cell is in the first column
-            }
+$(document).ready(function() {
+    var currentPage = 1; // Current page
+    var rowsPerPage = 20; // Number of rows per page
+    var totalRecords; // Total number of records
 
+    // Function to fetch updated data from the server
+    function fetchData() {
+        $.ajax({
+            url: "fetch_data.php", // Change to the appropriate endpoint for fetching updated data
+            type: "GET",
+            dataType: "json",
+            success: function(response) {
+                totalRecords = response.length; // Update totalRecords with the length of the response array
+                updateTable(response);
+                updatePagination(); // Call updatePagination here
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", error);
+                // Handle error cases, such as displaying an error message to the user
+            }
+        });
+    }
+
+    // Call fetchData when the page loads to fetch initial data with the default row limit
+    fetchData();
+
+    // Update the table content with the fetched data
+    function updateTable(data) {
+        $('tbody').empty(); // Clear existing table rows
+        var startIndex = (currentPage - 1) * rowsPerPage;
+        var endIndex = startIndex + rowsPerPage;
+        var paginatedData = data.slice(startIndex, endIndex);
+
+        $.each(paginatedData, function(index, row) {
+            var tr = $("<tr>").attr("id", "row_" + row.product_pk);
+            $.each(row, function(column_name, value) {
+                if (column_name !== 'product_status' && column_name !== 'product_fk') {
+                    var td = $("<td>").attr({
+                        "id": column_name,
+                        "class": "editable",
+                        "data-column": column_name,
+                        "contenteditable": "true",
+                        "type": "number"
+                    }).text(value);
+                    tr.append(td);
+                }
+            });
+            $('tbody').append(tr);
+        });
+    }
+
+    // Function to update pagination controls
+    function updatePagination() {
+        var totalPages = Math.ceil(totalRecords / rowsPerPage);
+        $("#current-page").text(currentPage);
+        $("#total-pages").text(totalPages);
+        $("#page-number").val(currentPage); // Update input field value
+    }
+
+    // Click event handler for editing cells
+    $(document).on("click", "td.editable", function() {
             var cell = $(this);
             var oldValue = cell.text().trim();
+            var column = cell.attr("data-column");
 
             // Set the contenteditable attribute to true to make the cell editable
             cell.attr("contenteditable", "true").focus();
 
             // On blur event, send AJAX request to update the value
-            cell.on("blur", function() {
+            cell.one("blur", function() {
                 var newValue = cell.text().trim();
-                updateValue(cell, newValue, oldValue);
+                updateValue(cell, newValue, oldValue, column);
             });
 
             // On pressing Enter key, confirm the edited value
             cell.on("keydown", function(event) {
-                if (event.keyCode === 13) { // 13 corresponds to the Enter key
+                if (event.key === "Enter") {
+                    event.preventDefault(); // Prevent default behavior of Enter key
                     var newValue = cell.text().trim();
-                    updateValue(cell, newValue, oldValue);
+                    updateValue(cell, newValue, oldValue, column);
                 }
             });
-        });
 
-        function updateValue(cell, newValue, oldValue) {
-            var column = cell.attr("data-column");
-
-            // If column is not product_name, validate if newValue is numeric
-            if (column !== "product_name" && isNaN(newValue)) {
-                alert("Please enter a valid numeric value.");
-                cell.text(oldValue); // Revert the cell text to the original value
-                cell.removeAttr("contenteditable").off("blur keydown");
-                return;
-            }
-
-            if (newValue !== oldValue) {
-                var productId = cell.closest("tr").attr("id").split("_")[1]; // Extract product ID
-
-                // Send AJAX request to update the value
-                $.ajax({
-                    url: "update.php",
-                    type: "POST",
-                    data: { id: productId, column: column, newValue: newValue },
-                    dataType: "json",
-                    success: function(response) {
-                        console.log("AJAX Success:", response);
-                        if (response.success) {
-                            cell.text(newValue); // Update the cell text with the new value
-                        } else {
-                            console.error("Update failed:", response.message);
-                            cell.text(oldValue); // Revert the cell text to the original value
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error("AJAX Error:", error);
-                        cell.text(oldValue); // Revert the cell text to the original value
-                    },
-                    complete: function() {
-                        cell.removeAttr("contenteditable").off("blur keydown");
+            // Input validation for numeric columns
+            if (column !== "product_name") {
+                cell.on("input", function(event) {
+                    var value = $(this).text().trim();
+                    if (isNaN(value)) {
+                        $(this).text(oldValue); // Revert the cell text to the original value
                     }
                 });
-            } else {
-                // If the value hasn't changed, simply display the text
-                cell.text(oldValue);
-                cell.removeAttr("contenteditable").off("blur keydown");
             }
+        });
+    function updateValue(cell, newValue, oldValue) {
+        var column = cell.attr("data-column");
+
+        // If column is not product_name, validate if newValue is numeric
+        if (column !== "product_name" && isNaN(newValue)) {
+            alert("Please enter a valid numeric value.");
+            cell.text(oldValue); // Revert the cell text to the original value
+            return;
+        }
+
+        var productId = cell.closest("tr").attr("id").split("_")[1]; // Extract product ID
+
+        // Send AJAX request to update the value
+        $.ajax({
+            url: "update.php",
+            type: "POST",
+            data: { id: productId, column: column, newValue: newValue },
+            dataType: "json",
+            success: function(response) {
+                console.log("AJAX Success:", response);
+                if (response.success) {
+                    cell.text(newValue); // Update the cell text with the new value
+                    fetchData(); // Fetch new data after successful update
+                } else {
+                    console.error("Update failed:", response.message);
+                    cell.text(oldValue); // Revert the cell text to the original value
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("AJAX Error:", error);
+                cell.text(oldValue); // Revert the cell text to the original value
+            },
+            complete: function() {
+                // Remove the contenteditable attribute and reattach click event handler
+                cell.removeAttr("contenteditable");
+            }
+        });
+    }
+
+    // Function to handle pagination
+    function paginate(direction) {
+        var totalPages = Math.ceil(totalRecords / rowsPerPage);
+        if (direction === "next" && currentPage < totalPages) {
+            currentPage++;
+        } else if (direction === "prev" && currentPage > 1) {
+            currentPage--;
+        }
+        fetchData(); // Fetch data for the updated page
+    }
+
+    // Previous button click event
+    $("#prev-btn").click(function() {
+        paginate("prev");
+    });
+
+    // Next button click event
+    $("#next-btn").click(function() {
+        paginate("next");
+    });
+
+    // Input field change event
+    $("#page-number").on("change", function() {
+        var pageNum = parseInt($(this).val());
+        if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= Math.ceil(totalRecords / rowsPerPage)) {
+            currentPage = pageNum;
+            fetchData(); // Fetch data for the updated page
         }
     });
-</script>
-<!-- Filter Parts -->
-<script>
-  $(document).ready(function() {
-// Define the filtering logic
-$('#filter').on('click', function() {
-    const rowLimit = $('#row').val();
-    // Check if rowLimit is empty, refresh the page if it is
-    if (!rowLimit) {
-        location.reload();
-        return;
-    }
-    filterTable('myTable', rowLimit);
-});
 
-const filterTable = (tableId, rowLimit) => {
-    const $table = $('#' + tableId);
-    const $rows = $table.find('tbody tr');
+    // Combine filtering and pagination logic
+    $('#filter').on('click', function() {
+        const rowLimit = $('#row').val();
+        filterAndPaginate(rowLimit);
+    });
 
-    // Hide all tbody rows initially
-    $rows.hide();
-
-    // Show only the specified number of tbody rows starting from index 0
-    if (rowLimit === '' || parseInt(rowLimit) === 0) {
-        // If rowLimit is empty or equal to 0, reload the page
-        location.reload();
-    } else {
-        $rows.slice(0, parseInt(rowLimit)).show();
-    }
-};
-
-    // Define the pagination logic
-    const rowsPerPage = 10;
-    const $table = $("#myTable");
-    const $tbodyRows = $table.find("tbody tr");
-    let totalPages = Math.ceil($tbodyRows.length / rowsPerPage);
-    let currentPage = 1;
-
-    const showPage = (page) => {
-        // Hide all tbody rows
+    function filterAndPaginate(rowLimit) {
+        const $table = $("#myTable");
+        const $tbodyRows = $table.find("tbody tr");
         $tbodyRows.hide();
 
-        // Calculate start and end indices for the current page
-        const startIndex = (page - 1) * rowsPerPage;
-        const endIndex = startIndex + rowsPerPage;
-
-        // Show only the tbody rows for the current page
-        $tbodyRows.slice(startIndex, endIndex).show();
-
-        // Update displayed page number
-        $("#current-page").text(page);
-    };
-
-    const goToPage = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            currentPage = page;
-            showPage(currentPage);
-            $("#page-number").val(currentPage);
+        if (!rowLimit || parseInt(rowLimit) <= 0) {
+            // Show error message or handle this case as per your requirement
+            location.reload();
+            return;
+        } else {
+            $tbodyRows.slice(0, parseInt(rowLimit)).show();
         }
-    };
 
-    // Event listeners for pagination controls
-    $("#prev-btn").on("click", () => {
-        goToPage(currentPage - 1);
-    });
+        currentPage = 1;
+        rowsPerPage = parseInt(rowLimit); // Update rowsPerPage based on the filtered value
+        fetchData();
+    }
+});
+</script>
+<!-- JavaScript to enforce numeric input for editable cells -->
+<!-- <script>
+    $(document).ready(function() {
+        // JavaScript to enforce numeric input for editable cells
+        $(document).on('keydown', '.editable', function(e) {
+            var keyCode = e.keyCode || e.which;
 
-    $("#next-btn").on("click", () => {
-        goToPage(currentPage + 1);
-    });
-
-    $("#page-number").on("change", function() {
-        const pageNum = parseInt($(this).val());
-        if (!isNaN(pageNum)) {
-            goToPage(pageNum);
-        }
-    });
-
-    // Initial setup
-    showPage(currentPage);
-    $("#total-pages").text(totalPages);
-
-    // Store the original table rows
-    var originalTableRows = $('#table-body').html();
-
-    // Function to handle search
-    function handleSearch() {
-        var searchText = $('#searchInput').val().trim().toLowerCase(); // Trim whitespace from input
-        var rowsToShow = 0;
-
-        // Loop through each table row
-        $('#myTable tbody tr').each(function() {
-            var rowText = $(this).text().trim().toLowerCase(); // Trim whitespace from row text
-
-            // Check if the row contains the search text
-            if (searchText === '' || rowText.indexOf(searchText) !== -1) {
-                $(this).show(); // Show row if it matches search text or if search text is empty
-                rowsToShow++;
-            } else {
-                $(this).hide(); // Hide row if it doesn't match search text
+            // Allow: backspace, delete, tab, escape, enter, and .
+            if ([46, 8, 9, 27, 13, 110, 190].indexOf(keyCode) !== -1 ||
+                // Allow: Ctrl+A, Command+A
+                (keyCode === 65 && (e.ctrlKey === true || e.metaKey === true)) ||
+                // Allow: home, end, left, right, down, up
+                (keyCode >= 35 && keyCode <= 40)) {
+                // let it happen, don't do anything
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (keyCode < 48 || keyCode > 57)) && (keyCode < 96 || keyCode > 105)) {
+                e.preventDefault();
             }
         });
-
-        // Show no results message if necessary
-        if (rowsToShow === 0 && searchText !== '') {
-            var noResultsMessage = '<tr><td colspan="' + $('#myTable th').length + '">No results found</td></tr>';
-            $('#table-body').html(noResultsMessage);
-        } else {
-            $('#table-body').html(''); // Clear the no results message if there are results
-        }
-    }
-
-    // Bind the keyup event of the search input
-    $('#searchInput').keyup(handleSearch);
-});
-
-</script>
-<!-- Calculation Parts -->
+    });
+</script> -->
+<!-- Handle Search Function -->
 <script>
-  $(document).ready(function () {
-    // Function to calculate and update the current stock
-    function updatecurrent_stock() {
-      $('#myTable tbody tr').each(function () {
-        var current_stock = 0;
-        var columnCount = $(this).find('td[name="current_stock"]').index();
+    $(document).ready(function() {
+ // Function to handle search
+function handleSearch() {
+    var searchText = $('#searchInput').val().trim().toLowerCase(); // Trim whitespace from input
+    var rowsToShow = 0;
 
-        $(this).find('td.editable').each(function (index) {
-          if (index !== 0 && index !== 1 && index < columnCount) {
-            var value = parseInt($(this).text()) || 0;
-            current_stock += value;
-            console.log(value);
-          }
-        });
+    // Store the current page number before reloading the page
+    var currentPageNumber = parseInt($("#current-page").text());
 
-        $(this).find('td[name="current_stock"]').text(current_stock);
-      });
+    // Loop through each table row
+    $('#myTable tbody tr').each(function() {
+        var rowText = $(this).text().trim().toLowerCase(); // Trim whitespace from row text
+
+        // Check if the row contains the search text
+        if (searchText === '' || rowText.indexOf(searchText) !== -1) {
+            $(this).show(); // Show row if it matches search text or if search text is empty
+            rowsToShow++;
+        } else {
+            $(this).hide(); // Hide row if it doesn't match search text
+        }
+    });
+
+    // Show no results message if necessary
+    if (rowsToShow === 0 && searchText !== '') {
+        var noResultsMessage = '<tr><td colspan="' + $('#myTable th').length + '">No results found</td></tr>';
+        $('#table-body').html(noResultsMessage);
+    } else {
+        $('#table-body').html(''); // Clear the no results message if there are results
     }
 
-    // Event listener for input changes in the editable cells
-    $('#myTable tbody td.editable').on('input', function () {
-      updatecurrent_stock(); // Recalculate the current stock when a value changes
-      updateTotal(); // Recalculate the total when a value changes
-    });
+    // Store the current page number in session storage
+    sessionStorage.setItem('currentPageNumber', currentPageNumber);
 
-    function updateTotal() {
-  $('#myTable tbody tr').each(function () {
-    var total = 0;
-    $(this).find('td.editable').each(function (index) {
-      if (index > 1) {
+    // Reload the page if search input is empty
+    if (searchText === '') {
+        // Scroll back to the stored page number
+        var storedPageNumber = sessionStorage.getItem('currentPageNumber');
+        if (storedPageNumber) {
+            goToPage(parseInt(storedPageNumber));
+        }
+        return; // Exit the function without reloading the page
+    }
 
-        var value = parseInt($(this).text()) || 0;
-        total += value;
-      }
-    });
-
-    $(this).find('td[name="total"]').text(total);
-  });
+    // Perform any other search-related operations here...
 }
 
+        // Bind the keyup event of the search input
+        $('#searchInput').keyup(handleSearch);
 
-    // Call updatecurrent_stock() on document ready to ensure it runs when the page loads
-    updatecurrent_stock();
-    updateTotal();
-  });
+        
+    });
 </script>
 <!-- Sum Column -->
 <script>
-$(document).ready(function() {
+    $(document).ready(function() {
     // Function to calculate and update sums
     function updateSums() {
-        $('#myTable').find('td.editable').slice(2).each(function() { // Start from the third column
-            var columnIndex = $(this).index(); // Get the index of the column
-            var total = 0;
-
-            if (columnIndex > 1) { // Exclude the first two columns
-                $('#myTable').find('tbody tr').each(function() {
-                    var cellValue = parseInt($(this).find('td').eq(columnIndex).text()) || 0;
-                    total += cellValue;
+        // AJAX request to fetch sum data from server
+        $.ajax({
+            url: 'fetch_sums.php',
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                // Update sums in the table
+                $.each(data, function(columnName, total) {
+                    $('#' + columnName + '_sum').text('(' + total + ')');
                 });
-
-                var columnName = $(this).attr('data-column');
-                $('span#' + columnName + '_sum').text(total); // Set the sum in the corresponding inner <span> element
+                
+                // Call updateSums again after current update completes
+                updateSums();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error fetching sums:', error);
+                
+                // Call updateSums again in case of error
+                updateSums();
             }
         });
     }
 
-    // Initial calculation on page load
+    // Initial calculation and update on page load
     updateSums();
-
-    // Listen for changes in the table and update sums accordingly
-    $('#myTable').on('input', 'td.editable', function() {
-        updateSums();
-    });
 });
 </script>
-<!-- Sum Column of Current_stock and Total-->
-<script>
-    function updateSums() {
-        var rows = document.querySelectorAll("tr[id^='row_']");
-        var currentStockSum = 0;
-        var totalSum = 0;
-
-        rows.forEach(function(row) {
-            var currentStockText = row.querySelector("td[name='current_stock']").innerText;
-            var totalText = row.querySelector("td[name='total']").innerText;
-            
-            // Extract numeric values using regular expressions
-            var numericRegex = /[-+]?[0-9]+/g; // Change regex to match integers
-            var currentStockMatches = currentStockText.match(numericRegex);
-            var totalMatches = totalText.match(numericRegex);
-
-            // Check if matches were found
-            if (currentStockMatches && totalMatches) {
-                // Use the first match as the numeric value
-                var currentStockValue = parseInt(currentStockMatches[0]);
-                var totalValue = parseInt(totalMatches[0]);
-
-                // Update the sums
-                currentStockSum += currentStockValue;
-                totalSum += totalValue;
-            }
-        });
-
-        // Update the sums in the respective span elements with parentheses
-        document.getElementById("current_stock_sum").innerText = "(" + currentStockSum + ")";
-        document.getElementById("total_sum").innerText = "(" + totalSum + ")";
-    }
-
-    window.onload = function() {
-        updateSums(); // Initial update
-        
-        // Polling to update sums periodically
-        setInterval(updateSums, 2000); // Update every 2 seconds (adjust as needed)
-    };
-</script>
-
 </html>
