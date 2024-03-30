@@ -11,7 +11,6 @@
     integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
     crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
-
 <body>
 <div class="contain-fluid">
 <nav class="sticky-top top-0" style="background-color:white; z-index:999;">
@@ -56,7 +55,7 @@
 
             if ($result && $result->num_rows > 0) {
                 while ($row = $result->fetch_assoc()) {
-                    echo "<th class='text-center'>ID<br><span style='color:#28ACE8;'>()</span></th>";
+                    echo "<th class='text-center'>No<br><br><span style='color:#28ACE8;'></span></th>";
                     foreach ($row as $column_name => $value) {
                         if ($column_name == 'product_pk' || $column_name == 'product_status' || $column_name == 'product_fk') {
                             // Skip rendering product_status and product_fk
@@ -65,7 +64,7 @@
                         // Check if the current column is product_pk or product_name
                         if ($column_name == 'product_pk' || $column_name == 'product_name') {
                             // Remove the parentheses from the span
-                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' style='color:#28ACE8;'>()</span></th>";
+                            echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><br><span id='" . $column_name . "' style='color:#28ACE8;'></span></th>";
                         } else {
                             echo "<th id='" . $column_name . "' class='text-center'>" . $column_name . "<br><span id='" . $column_name . "' class='text-danger'><span id='" . $column_name . "_sum'></span></span></th>";
                         }
@@ -78,7 +77,7 @@
         </tr>
       </thead>
       <tbody>
-          <?php
+      <?php
 include '../connection/connect.php';
 
 $sql = "CALL update_table_column()";
@@ -89,17 +88,24 @@ if ($result && $result->num_rows > 0) {
     while ($row = $result->fetch_assoc()) {
         echo "<tr id='row_" . $counter . "'>"; // Generate new ID starting from 1
         echo "<td>" . $counter . "</td>"; // Use the counter to generate each
+        $columnIndex = 1; // Initialize column index counter
         foreach ($row as $column_name => $value) {
             if ($column_name == 'product_pk' || $column_name == 'product_status' || $column_name == 'product_fk') {
                 continue;
             }
-            echo "<td id='".$column_name."' class='editable' data-column='" . $column_name . "' contenteditable='true' type='number'>" . $value . "</td>";
+            echo "<td id='".$column_name."' class='editable";
+            if ($columnIndex == 3) {
+                echo " bg-custom"; // Add custom background class for the third column
+            }
+            echo "' data-column='" . $column_name . "' contenteditable='true' type='number'>" . $value . "</td>";
+            $columnIndex++; // Increment column index
         }
         echo "</tr>";
         $counter++; // Increment the counter for the next row
     }
 }   
 ?>
+
 
           </tbody>
       </table>
@@ -144,7 +150,7 @@ if ($result && $result->num_rows > 0) {
                                     $department_name = $row["department_name"];
                                     ?>
                                     <div class="col-12 mb-3" style="flex: 0 0 auto; width: 200px;">
-                                        <label for="<?= $department_name ?>" class="form-label text-center fw-bolder w-100"><?= $department_name ?></label>
+                                        <label class="form-label text-center fw-bolder w-100"><?= $department_name ?></label>
                                         <input type="text" class="form-control<?= $first ? ' required' : '' ?>" id="<?= $department_name ?>" name="<?= $department_name ?>"<?= $first ? ' required' : '' ?>>
                                     </div>
                                     <?php
@@ -173,315 +179,238 @@ if ($result && $result->num_rows > 0) {
 <script src="../js/main.js"></script>
 <!-- Make tbody editable -->
 <script>
-    $(document).ready(function() {
-        var currentPage = 1; // Current page
-        var rowsPerPage = 20; // Number of rows per page
-        var totalRecords; // Total number of records
+  $(document).ready(function() {
+    var currentPage = 1; // Current page
+    var rowsPerPage = 20; // Number of rows per page
+    var totalRecords; // Total number of records
+    var data; // Variable to hold the fetched data
 
-        // Function to fetch updated data from the server
-        function fetchData() {
-            $.ajax({
-                url: "fetch_data.php", // Change to the appropriate endpoint for fetching updated data
-                type: "GET",
-                dataType: "json",
-                success: function(response) {
-                    totalRecords = response.length; // Update totalRecords with the length of the response array
-                    updateTable(response);
-                    updatePagination(); // Call updatePagination here
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", error);
-                    // Handle error cases, such as displaying an error message to the user
-                }
-            });
+    // Function to fetch updated data from the server
+    function fetchData() {
+      $.ajax({
+        url: "fetch_data.php", // Change to the appropriate endpoint for fetching updated data
+        type: "GET",
+        dataType: "json",
+        success: function(response) {
+          data = response; // Store the fetched data
+          totalRecords = data.length; // Update totalRecords with the length of the response array
+          updateTable(data);
+          updatePagination(); // Call updatePagination here
+        },
+        error: function(xhr, status, error) {
+          console.error("AJAX Error:", error);
+          // Handle error cases, such as displaying an error message to the user
         }
+      });
+    }
 
-        // Call fetchData when the page loads to fetch initial data with the default row limit
-        fetchData();
+    // Call fetchData when the page loads to fetch initial data with the default row limit
+    fetchData();
 
-        // Update the table content with the fetched data
-        function updateTable(data) {
-            $('tbody').empty(); // Clear existing table rows
-            var startIndex = (currentPage - 1) * rowsPerPage;
-            var endIndex = startIndex + rowsPerPage;
-            var paginatedData = data.slice(startIndex, endIndex);
+    // Update the table content with the fetched data
+    function updateTable(data) {
+      $('tbody').empty(); // Clear existing table rows
+      var startIndex = (currentPage - 1) * rowsPerPage;
+      var endIndex = startIndex + rowsPerPage;
+      var paginatedData = data.slice(startIndex, endIndex);
 
-            // Calculate the starting loop ID for the current page
-            var startingLoopId = (currentPage - 1) * rowsPerPage + 1;
+      // Calculate the starting loop ID for the current page
+      var startingLoopId = (currentPage - 1) * rowsPerPage + 1;
 
-            $.each(paginatedData, function(index, row) {
-                var tr = $("<tr>").attr("id", "row_" + row.product_pk);
-                // Add a loop ID column
-                var loopIdTd = $("<td>").text(startingLoopId + index);
-                tr.prepend(loopIdTd);
+      $.each(paginatedData, function(index, row) {
+        var tr = $("<tr>").attr("id", "row_" + row.product_pk);
 
-                $.each(row, function(column_name, value) {
-                    if (column_name !== 'product_pk' && column_name !== 'product_status' && column_name !== 'product_fk') {
-                        var td = $("<td>").attr({
-                            "id": column_name,
-                            "class": "editable",
-                            "data-column": column_name,
-                            "contenteditable": "true",
-                            "type": "number"
-                        }).text(value);
-                        tr.append(td);
-                    }
-                });
-                $('tbody').append(tr);
-            });
-        }
+        // Add a loop ID column
+        var loopIdTd = $("<td>").text(startingLoopId + index);
+        tr.append(loopIdTd);
 
-        // Function to update pagination controls
-        function updatePagination() {
-            var totalPages = Math.ceil(totalRecords / rowsPerPage);
-            $("#current-page").text(currentPage);
-            $("#total-pages").text(totalPages);
-            $("#page-number").val(currentPage); // Update input field value
-        }
-
-        // Click event handler for editing cells
-        $(document).on("click", "td.editable", function() {
-            var cell = $(this);
-            var oldValue = cell.text().trim();
-            var column = cell.attr("data-column");
-
-            // Set the contenteditable attribute to true to make the cell editable
-            cell.attr("contenteditable", "true").focus();
-
-            // On blur event, send AJAX request to update the value
-            cell.one("blur", function() {
-                var newValue = cell.text().trim();
-                updateValue(cell, newValue, oldValue, column);
-            });
-
-            // On pressing Enter key, confirm the edited value
-            cell.on("keydown", function(event) {
-                if (event.key === "Enter") {
-                    event.preventDefault(); // Prevent default behavior of Enter key
-                    var newValue = cell.text().trim();
-                    updateValue(cell, newValue, oldValue, column);
-                }
-            });
-
-            // Input validation for numeric columns
-            if (column !== "product_name") {
-                cell.on("input", function(event) {
-                    var value = $(this).text().trim();
-                    if (isNaN(value)) {
-                        $(this).text(oldValue); // Revert the cell text to the original value
-                    }
-                });
-            }
+        $.each(row, function(column_name, value) {
+          if (column_name !== 'product_pk' && column_name !== 'product_status' && column_name !== 'product_fk') {
+            var td = $("<td>").attr({
+              "id": column_name,
+              "class": "editable",
+              "data-column": column_name,
+              "contenteditable": "true",
+              "type": "number"
+            }).text(value);
+            tr.append(td);
+          }
         });
+        $('tbody').append(tr);
+      });
+    }
 
-        function updateValue(cell, newValue, oldValue) {
-            var column = cell.attr("data-column");
+    // Function to update pagination controls
+    function updatePagination() {
+      var totalPages = Math.ceil(totalRecords / rowsPerPage);
+      $("#current-page").text(currentPage);
+      $("#total-pages").text(totalPages);
+      $("#page-number").val(currentPage); // Update input field value
+    }
 
-            // If column is not product_name, validate if newValue is numeric
-            if (column !== "product_name" && isNaN(newValue)) {
-                alert("Please enter a valid numeric value.");
-                cell.text(oldValue); // Revert the cell text to the original value
-                return;
-            }
+    // Click event handler for editing cells
+    $(document).on("click", "td.editable", function() {
+      var cell = $(this);
+      var oldValue = cell.text().trim();
+      var column = cell.attr("data-column");
 
-            var productId = cell.closest("tr").attr("id").split("_")[1]; // Extract product ID
+      // Set the contenteditable attribute to true to make the cell editable
+      cell.attr("contenteditable", "true").focus();
 
-            // Send AJAX request to update the value
-            $.ajax({
-                url: "update.php",
-                type: "POST",
-                data: { id: productId, column: column, newValue: newValue },
-                dataType: "json",
-                success: function(response) {
-                    console.log("AJAX Success:", response);
-                    if (response.success) {
-                        cell.text(newValue); // Update the cell text with the new value
-                        fetchData(); // Fetch new data after successful update
-                    } else {
-                        console.error("Update failed:", response.message);
-                        cell.text(oldValue); // Revert the cell text to the original value
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", error);
-                    cell.text(oldValue); // Revert the cell text to the original value
-                },
-                complete: function() {
-                    // Remove the contenteditable attribute and reattach click event handler
-                    cell.removeAttr("contenteditable");
-                }
-            });
+      // On blur event, send AJAX request to update the value
+      cell.one("blur", function() {
+        var newValue = cell.text().trim();
+        updateValue(cell, newValue, oldValue, column);
+      });
+
+      // On pressing Enter key, confirm the edited value
+      cell.on("keydown", function(event) {
+        if (event.key === "Enter") {
+          event.preventDefault(); // Prevent default behavior of Enter key
+          var newValue = cell.text().trim();
+          updateValue(cell, newValue, oldValue, column);
         }
+      });
 
-        // Function to handle pagination
-        function paginate(direction) {
-            var totalPages = Math.ceil(totalRecords / rowsPerPage);
-            if (direction === "next" && currentPage < totalPages) {
-                currentPage++;
-            } else if (direction === "prev" && currentPage > 1) {
-                currentPage--;
-            }
-            fetchData(); // Fetch data for the updated page
-        }
-
-        // Previous button click event
-        $("#prev-btn").click(function() {
-            paginate("prev");
+      // Input validation for numeric columns
+      if (column !== "product_name") {
+        cell.on("input", function(event) {
+          var value = $(this).text().trim();
+          if (isNaN(value)) {
+            $(this).text(oldValue); // Revert the cell text to the original value
+          }
         });
-
-        // Next button click event
-        $("#next-btn").click(function() {
-            paginate("next");
-        });
-
-        // Input field change event
-        $("#page-number").on("change", function() {
-            var pageNum = parseInt($(this).val());
-            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= Math.ceil(totalRecords / rowsPerPage)) {
-                currentPage = pageNum;
-                fetchData(); // Fetch data for the updated page
-            }
-        });
-
-        // Combine filtering and pagination logic
-        $('#filter').on('click', function() {
-            const rowLimit = $('#row').val();
-            filterAndPaginate(rowLimit);
-        });
-
-        function filterAndPaginate(rowLimit) {
-            const $table = $("#myTable");
-            const $tbodyRows = $table.find("tbody tr");
-            $tbodyRows.hide();
-
-            if (!rowLimit || parseInt(rowLimit) <= 0) {
-                // Show error message or handle this case as per your requirement
-                location.reload();
-                return;
-            } else {
-                $tbodyRows.slice(0, parseInt(rowLimit)).show();
-            }
-
-            currentPage = 1;
-            rowsPerPage = parseInt(rowLimit); // Update rowsPerPage based on the filtered value
-            fetchData();
-        }
-
-        // Function to handle search
-        function handleSearch() {
-            var searchTerm = $('#searchInput').val().trim().toLowerCase();
-            if (searchTerm === '') {
-                // If search term is empty, show all rows
-                $('tbody tr').show();
-            } else {
-                // Hide all rows and then show only those that match the search term
-                var visibleRows = []; // Array to store indices of matching rows
-                $('tbody tr').each(function(index) {
-                    var productName = $(this).find('td[data-column="product_name"]').text().toLowerCase();
-                    if (productName.includes(searchTerm)) {
-                        visibleRows.push(index); // Store the index of matching rows
-                    }
-                });
-
-                $('tbody tr').hide(); // Hide all rows
-                // Show only the rows that match the search term
-                $.each(visibleRows, function(index, rowIndex) {
-                    $('tbody tr').eq(rowIndex).show();
-                });
-            }
-            // Reset pagination to the first page after search
-            currentPage = 1;
-            updatePagination();
-        }
-
-        // Trigger search on input change
-        $('#searchInput').on('input', function() {
-            handleSearch();
-        });
-
-        // Trigger search on form submission (optional)
-        $('#searchForm').submit(function(event) {
-            event.preventDefault(); // Prevent form submission
-            handleSearch();
-        });
-
-        // Function to fetch data including search term
-        function fetchDataWithSearch() {
-            $.ajax({
-                url: "fetch_data.php",
-                type: "GET",
-                data: { search: $('#searchInput').val().trim() }, // Pass search term to server
-                dataType: "json",
-                success: function(response) {
-                    totalRecords = response.length;
-                    updateTable(response);
-                    updatePagination();
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", error);
-                }
-            });
-        }
-
-        // Call fetchDataWithSearch when the page loads to fetch initial data with search term
-        fetchDataWithSearch();
+      }
     });
+
+    function updateValue(cell, newValue, oldValue) {
+      var column = cell.attr("data-column");
+
+      // If column is not product_name, validate if newValue is numeric
+      if (column !== "product_name" && isNaN(newValue)) {
+        alert("Please enter a valid numeric value.");
+        cell.text(oldValue); // Revert the cell text to the original value
+        return;
+      }
+
+      var productId = cell.closest("tr").attr("id").split("_")[1]; // Extract product ID
+
+      // Send AJAX request to update the value
+      $.ajax({
+        url: "update.php",
+        type: "POST",
+        data: {
+          id: productId,
+          column: column,
+          newValue: newValue
+        },
+        dataType: "json",
+        success: function(response) {
+          console.log("AJAX Success:", response);
+          if (response.success) {
+            cell.text(newValue); // Update the cell text with the new value
+            fetchData(); // Fetch new data after successful update
+          } else {
+            console.error("Update failed:", response.message);
+            cell.text(oldValue); // Revert the cell text to the original value
+          }
+        },
+        error: function(xhr, status, error) {
+          console.error("AJAX Error:", error);
+          cell.text(oldValue); // Revert the cell text to the original value
+        },
+        complete: function() {
+          // Remove the contenteditable attribute and reattach click event handler
+          cell.removeAttr("contenteditable");
+        }
+      });
+    }
+
+    // Function to handle pagination
+    function paginate(direction) {
+      var totalPages = Math.ceil(totalRecords / rowsPerPage);
+      if (direction === "next" && currentPage < totalPages) {
+        currentPage++;
+      } else if (direction === "prev" && currentPage > 1) {
+        currentPage--;
+      }
+      fetchData(); // Fetch data for the updated page
+    }
+
+    // Previous button click event
+    $("#prev-btn").click(function() {
+      paginate("prev");
+    });
+
+    // Next button click event
+    $("#next-btn").click(function() {
+      paginate("next");
+    });
+
+    // Input field change event
+    $("#page-number").on("change", function() {
+      var pageNum = parseInt($(this).val());
+      if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= Math.ceil(totalRecords / rowsPerPage)) {
+        currentPage = pageNum;
+        fetchData(); // Fetch data for the updated page
+      }
+    });
+
+    // Combine filtering and pagination logic
+    $('#filter').on('click', function() {
+      const rowLimit = $('#row').val();
+      filterAndPaginate(rowLimit);
+    });
+
+    function filterAndPaginate(rowLimit) {
+      const $table = $("#myTable");
+      const $tbodyRows = $table.find("tbody tr");
+      $tbodyRows.hide();
+
+      if (!rowLimit || parseInt(rowLimit) <= 0) {
+        // Show error message or handle this case as per your requirement
+        location.reload();
+        return;
+      } else {
+        $tbodyRows.slice(0, parseInt(rowLimit)).show();
+      }
+
+      currentPage = 1;
+      rowsPerPage = parseInt(rowLimit); // Update rowsPerPage based on the filtered value
+      fetchData();
+    }
+
+    // Function to filter and search data based on input
+    function filterAndSearch(searchInput) {
+      // Convert search input to lowercase for case-insensitive search
+      var searchText = searchInput.toLowerCase();
+      
+      // Filter data based on search input
+      var filteredData = data.filter(function(row) {
+        // Check if any column value contains the search text
+        for (var key in row) {
+          if (row.hasOwnProperty(key) && typeof row[key] === "string" && row[key].toLowerCase().indexOf(searchText) !== -1) {
+            return true; // Return true if any column value contains the search text
+          }
+        }
+        return false; // Return false if none of the column values contain the search text
+      });
+      
+      // Update table with filtered data
+      updateTable(filteredData);
+      
+      // Update pagination controls based on filtered data
+      totalRecords = filteredData.length;
+      updatePagination();
+    }
+
+    // Event listener for search input
+    $("#searchInput").on("input", function() {
+      var searchInput = $(this).val().trim();
+      filterAndSearch(searchInput);
+    });
+  });
 </script>
-
-
-<!-- Handle Search Function -->
-<!-- <script>
-    $(document).ready(function() {
-        // Function to handle search
-        function handleSearch() {
-            var searchTerm = $('#searchInput').val().trim().toLowerCase();
-            if (searchTerm === '') {
-                // If search term is empty, show all rows
-                $('tbody tr').show();
-            } else {
-                // Hide all rows and then show only those that match the search term
-                $('tbody tr').hide().filter(function() {
-                    return $(this).find('td[data-column="product_name"]').text().toLowerCase().includes(searchTerm);
-                }).show();
-            }
-            // Reset pagination to the first page after search
-            currentPage = 1;
-            updatePagination();
-        }
-
-        // Trigger search on input change
-        $('#searchInput').on('input', function() {
-            handleSearch();
-        });
-
-        // Trigger search on form submission (optional)
-        $('#searchForm').submit(function(event) {
-            event.preventDefault(); // Prevent form submission
-            handleSearch();
-        });
-
-        // Function to fetch data including search term
-        function fetchDataWithSearch() {
-            $.ajax({
-                url: "fetch_data.php",
-                type: "GET",
-                data: { search: $('#searchInput').val().trim() }, // Pass search term to server
-                dataType: "json",
-                success: function(response) {
-                    totalRecords = response.length;
-                    updateTable(response);
-                    updatePagination();
-                },
-                error: function(xhr, status, error) {
-                    console.error("AJAX Error:", error);
-                }
-            });
-        }
-
-        // Call fetchDataWithSearch when the page loads to fetch initial data with search term
-        fetchDataWithSearch();
-    });
-</script> -->
 <!-- Sum Column -->
 <script>
     $(document).ready(function() {
